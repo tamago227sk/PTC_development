@@ -48,63 +48,188 @@ Notes:
 
 ---
 
-## Quick start
+# PTC Bring-Up Quickstart (Port 3345)
 
-These steps assume you are in the repository root (`PTC_development/`).
+This section describes the “day‑0” bring‑up flow for a **fresh PTC microSD image** (PetaLinux already built and flashed) and a **fresh DUNE server machine** connected to the PTC via Ethernet. The goal is to validate:
 
-
-### 1) Build (generates protobuf + compiles binaries)
+1. The PTC is reachable over the network.
+2. The PTC-side register access works (via `peek`).
+3. The PTC-side ZMQ service (`ptc_server`) is running and listening on **port 3345**.
+4. The off-board client can read a known register through the server:
 
 ```bash
-chmod +x build.sh
-./build.sh
+python3 src/ptc_client.py -s <PTC_IP> peek 0x800201FC
 ```
 
-After a successful build, you should see server/util binaries in the repo root (e.g., `ptc_server` and `peek`).
+Successful execution should return the expected “ID register” value `0xDEADBEEF`.
 
 ---
 
-### 2) Run the server (two options)
+## Assumptions
 
-**Option A: use the init script**
-
-```bash
-chmod +x ptc_init.sh
-./ptc_init.sh
-```
-
-**Option B: run the server binary directly**
-
-With `ptc_server` produced via build:
-
-```bash
-./ptc_server
-```
-
-This will initiate and leave the server running in this terminal.
+* The PTC boots successfully from the microSD image.
+* You can log into the PTC as `root` (same operational model as WIB bring-up).
+* The PTC and DUNE server are connected via Ethernet and are on a routable network.
+* `ptc_server` is configured to bind to **TCP port 3345**.
 
 ---
 
-### 3) Sanity-check from a second terminal
+## 1. Identify the PTC IP address
 
-Open a new terminal in the same repo directory and run the Python client.
-
+On the PTC console (serial or local shell), find the IP:
 
 ```bash
-python3 ptc_client.py
+ip a
 ```
 
+From the DUNE server, confirm connectivity:
 
-Expected outcome: the client connects to the server and performs a minimal read (e.g., a known register value such as `0xDEADBEEF`) to confirm end-to-end communication.
+```bash
+ping -c 2 <PTC_IP>
+```
+
+**Expected result (success):** the PTC responds to ping.
 
 ---
 
-### 4) Stop the server
+## 2. (Optional) Enable passwordless SSH from the DUNE server
 
-Press `Ctrl+C` in the server terminal.
+This makes `deploy.sh` painless:
+
+```bash
+ssh-copy-id root@<PTC_IP>
+```
+
+Then verify:
+
+```bash
+ssh root@<PTC_IP>
+```
 
 ---
 
+## 3. Clone the PTC repository on the DUNE server
+
+On the DUNE server:
+
+```bash
+git clone <YOUR_REPO_URL>
+cd PTC_development
+```
+
+Ensure the machine has the build dependencies required by `build.sh` (compiler toolchain, protobuf compiler, ZeroMQ/protobuf development libraries, and Python tooling used by the client).
+
+---
+
+## 4. Build + deploy to the PTC
+
+From the repo root on the DUNE server:
+
+```bash
+chmod +x deploy.sh
+./deploy.sh <PTC_IP>
+```
+
+**What `deploy.sh` does:**
+
+* runs `./build.sh` on the DUNE server (builds `ptc_server` and `peek`)
+* copies `ptc_server` and `peek` to the PTC via `scp`
+* installs them on the PTC (default install location in the script)
+* starts `ptc_server` on the PTC and writes logs to `/var/log/ptc_server.log`
+
+**Expected result (success):** `deploy.sh` completes and prints the “Installed …” message.
+
+---
+
+## 5. Validate on the PTC (local sanity checks)
+
+SSH into the PTC:
+
+```bash
+ssh root@<PTC_IP>
+```
+
+### 5.1 Confirm `ptc_server` is running
+
+```bash
+pidof ptc_server
+```
+
+**Expected result (success):** a PID is printed.
+
+### 5.2 Confirm `ptc_server` is listening on port 3345
+
+```bash
+ss -lntp | grep 3345
+```
+
+**Expected result (success):** a `LISTEN` line showing `:3345` with `ptc_server`.
+
+### 5.3 Confirm direct register read via `peek`
+
+Run:
+
+```bash
+/usr/local/bin/peek 0x800201FC
+```
+
+**Expected result (success):** output contains the value `0xDEADBEEF`.
+
+---
+
+## 6. Validate from the DUNE server (remote client → server → hardware)
+
+On the DUNE server, run:
+
+```bash
+python3 src/ptc_client.py -s <PTC_IP> peek 0x800201FC
+```
+
+**Expected result (success):** prints `0xdeadbeef` (case/format may vary).
+
+This confirms the full stack:
+
+* Ethernet connectivity between DUNE server and PTC
+* ZMQ REQ/REP communication
+* protobuf message packing (`Command` with `Any`)
+* server dispatch for `Peek`
+* PTC register access through `/dev/mem`
+
+---
+
+## Successful “happy-path” terminal output (example)
+
+### DUNE server
+
+```text
+$ ./deploy.sh <PTC_IP>
+=== Building on dune-server ===
+... (protoc + g++ build output) ...
+=== Copying binaries to PTC (<PTC_IP>) ===
+ptc_server  100% ...
+peek        100% ...
+=== Installing to /usr/local/bin on PTC ===
+Installed: /usr/local/bin/ptc_server and /usr/local/bin/peek
+ptc_server log: /var/log/ptc_server.log
+=== Done ===
+
+$ python3 src/ptc_client.py -s <PTC_IP> peek 0x800201FC
+0xdeadbeef
+```
+
+### PTC
+
+```text
+# pidof ptc_server
+1234
+
+# ss -lntp | grep 3345
+LISTEN ... 0.0.0.0:3345 ... users:(("ptc_server",pid=1234,fd=3))
+
+# /usr/local/bin/peek 0x800201FC
+... 0xDEADBEEF
+```
+-- 
 ## Development workflow
 
 ### Recommended git usage
