@@ -1,0 +1,33 @@
+#!/bin/bash
+# PTC Build Script - Run from PTC_development/ root
+
+echo "--- Step 1: Generating Protobuf Files (C++ and Python) ---"
+# We generate them directly into src/
+# --proto_path=src tells it to look for ptc.proto inside src/
+protoc --cpp_out=src/ --python_out=src/ --proto_path=src/ src/ptc.proto
+# now, ptc.pb.h / ptc.pb.cc and ptc_pb2.py are generated in src/
+
+echo "--- Step 2: Compiling ptc_server ---"
+# -Isrc allows the compiler to find "ptc.h" and "ptc.pb.h"
+g++ -std=c++11 -Isrc -o ptc_server \
+    src/ptc_server.cxx \
+    src/ptc.cc \
+    src/i2c.cc \
+    src/log.cc \
+    src/ptc.pb.cc \
+    -lzmq -lprotobuf
+
+echo "--- Step 3: Compiling peek utility ---"
+g++ -std=c++11 -Isrc -o peek \
+    src/peek.cc \
+    src/ptc.cc \
+    src/i2c.cc \
+    src/log.cc \
+    -lzmq
+
+echo "--- Step 4: Deployment ---"
+# This makes the commands available globally as 'peek' and 'ptc_server'
+sudo cp ptc_server /bin/
+sudo cp peek /bin/
+
+echo "Build Complete. Binaries installed to /bin/"

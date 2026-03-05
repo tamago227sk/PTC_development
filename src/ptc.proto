@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package ptc;
+import "google/protobuf/any.proto";
+
+// Every request to the PTC server is 
+// Command that wraps exactly one type message
+message Command {
+    google.protobuf.Any cmd = 1;
+}
+
+
+/*** Low level register commands ***/
+
+//peek PTC memory
+message Peek {
+    //address in PTC memory (32 bit)
+    uint32 addr = 1; 
+    //replies RegValue
+}
+
+//poke PTC memory
+message Poke {
+    //address in PTC memory (32 bit)
+    uint32 addr = 1; 
+    //32 bit value 
+    uint32 value = 2; 
+    //replies RegValue
+}
+
+/*** Generic replies ***/
+
+//Nothing
+message Empty {}
+
+message Status {
+    bool success = 1;
+    bytes extra = 2;
+}
+
+message RegValue {
+    uint32 addr = 1;
+    uint32 value = 2;
+}

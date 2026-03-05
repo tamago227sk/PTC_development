@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# editors
+.vscode/
+.idea/
+
+# python
+__pycache__/
+*.pyc
+
+# build outputs
+ptc_server
+peek
+*.o
+
+# generated protobuf
+src/*.pb.cc
+src/*.pb.h
+src/*_pb2.py
+
+# logs
+*.log
+*.err
