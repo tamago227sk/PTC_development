@@ -92,7 +92,7 @@ uint32_t PTC::peek(size_t addr) {
 /* Poking function for FPGA register access */
 void PTC::poke(size_t addr, uint32_t val) {
     #ifndef SIMULATION
-    if (reg_ptr == MAP_FAILED) return 0xFFFFFFFF;
+    if (reg_ptr == MAP_FAILED) return;
 
     // --- SAFETY GUARDS ---
     if (addr < PTC_REG_BASE || 

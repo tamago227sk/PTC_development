@@ -19,11 +19,12 @@ g++ -std=c++11 -Isrc -o ptc_server \
 
 echo "--- Step 3: Compiling peek utility ---"
 g++ -std=c++11 -Isrc -o peek \
+    src/ptc.pb.cc \
     src/peek.cc \
     src/ptc.cc \
     src/i2c.cc \
     src/log.cc \
-    -lzmq
+    -lzmq -lprotobuf
 
 echo "--- Step 4: Deployment ---"
 # This makes the commands available globally as 'peek' and 'ptc_server'

@@ -15,12 +15,12 @@ int main(int argc, char **argv) {
     PTC ptc; 
     
     // Setup ZeroMQ context and socket
-    // We use port 1234 as a placeholder; ensure this matches your client configuration
+    // use port 3345 as a placeholder; ensure this matches your client configuration
     zmq::context_t context;
     zmq::socket_t socket(context, ZMQ_REP);
-    socket.bind("tcp://*:1234");
+    socket.bind("tcp://*:3345");
 
-    glog.log("PTC Server: Started and listening on port 1234\n");
+    glog.log("PTC Server: Started and listening on port 3345\n");
 
     while (true) {
         zmq::message_t request;

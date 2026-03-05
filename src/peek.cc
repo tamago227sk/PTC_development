@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
 
     // bilding the PTC object will perform the hardware mapping and I2C initialization
     PTC ptc;
-    // and print out the value at the address in hex format, which should be 0xDEADBEEF if the PTC server is not running, and something else if it is running
+    // and print out the value at the address in hex format, which should be 0xDEADBEEF
     std::cout << "0x" << std::hex << ptc.peek(addr) << std::endl;
     return 0;
 }
