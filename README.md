@@ -12,6 +12,28 @@ Software development repository for the <strong>PTC (Power and Timing Card)</str
 
 ---
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Repository Contents](#repository-contents)
+- [Repository Layout](#repository-layout)
+- [Dependencies](#dependencies)
+- [PTC Bring-Up Quickstart (Port 7820)](#ptc-bring-up-quickstart-port-7820)
+  - [Assumptions](#assumptions)
+  - [1. Identify the PTC IP Address](#1-identify-the-ptc-ip-address)
+  - [2. Optional: Enable Passwordless SSH](#2-optional-enable-passwordless-ssh)
+  - [3. Clone the Repository](#3-clone-the-repository)
+  - [4. Build and Deploy](#4-build-and-deploy)
+  - [5. Validation on the PTC](#5-validation-on-the-ptc)
+  - [6. Validation from the DUNE Server](#6-validation-from-the-dune-server)
+- [Example Successful Output](#example-successful-output)
+- [Development Workflow](#development-workflow)
+  - [Git Usage](#git-usage)
+  - [Branching Strategy](#branching-strategy)
+- [Roadmap](#roadmap)
+
+---
+
 ## Overview
 
 This repository provides a minimal and reproducible framework for developing and validating software for the **Power and Timing Card (PTC)**. The immediate objectives are:
@@ -39,6 +61,7 @@ The emphasis of this repository is **clarity, reproducibility, and incremental b
 
 ```
 PTC_development/
+├── deploy.sh
 ├── build.sh
 ├── ptc_init.sh
 ├── src/
@@ -71,7 +94,7 @@ Typical build requirements include:
 
 ---
 
-## PTC Bring-Up Quickstart (Port 3345)
+## PTC Bring-Up Quickstart (Port 7820)
 
 This section describes the initial bring-up procedure for a **fresh PTC microSD image** and a **DUNE server machine** connected via Ethernet.
 
@@ -94,16 +117,16 @@ A successful result should return the expected register value:
 0xDEADBEEF
 ```
 
----
+
 
 ### Assumptions
 
 * The PTC boots successfully from the microSD image.
 * Login access to the PTC as `root` is available.
 * The PTC and DUNE server share the same routable network.
-* `ptc_server` is configured to bind to **TCP port 3345**.
+* `ptc_server` is configured to bind to **TCP port 7820**.
 
----
+
 
 ### 1. Identify the PTC IP Address
 
@@ -121,7 +144,7 @@ ping -c 2 <PTC_IP>
 
 Successful execution should return ICMP responses from the PTC.
 
----
+
 
 ### 2. Optional: Enable Passwordless SSH
 
@@ -137,7 +160,7 @@ Verify access:
 ssh root@<PTC_IP>
 ```
 
----
+
 
 ### 3. Clone the Repository
 
@@ -150,7 +173,7 @@ cd PTC_development
 
 Ensure required build dependencies are available before proceeding.
 
----
+
 
 ### 4. Build and Deploy
 
@@ -177,7 +200,7 @@ Logs are written to:
 
 Successful completion indicates binaries were installed and the server started.
 
----
+
 
 ### 5. Validation on the PTC
 
@@ -198,10 +221,10 @@ Expected output: the server process ID.
 #### Confirm server port binding
 
 ```bash
-ss -lntp | grep 3345
+ss -lntp | grep 7820
 ```
 
-Expected output: a `LISTEN` entry for port `3345`.
+Expected output: a `LISTEN` entry for port `7820`.
 
 #### Confirm direct register access
 
@@ -215,7 +238,7 @@ Expected output:
 0xDEADBEEF
 ```
 
----
+
 
 ### 6. Validation from the DUNE Server
 
@@ -239,7 +262,7 @@ This confirms the full stack:
 * Server dispatch logic
 * Register access through `/dev/mem`
 
----
+
 
 ### Example Successful Output
 
@@ -268,8 +291,8 @@ $ python3 src/ptc_client.py -s <PTC_IP> peek 0x800201FC
 # pidof ptc_server
 1234
 
-# ss -lntp | grep 3345
-LISTEN ... 0.0.0.0:3345 ... users:("ptc_server",pid=1234)
+# ss -lntp | grep 7820
+LISTEN ... 0.0.0.0:7820 ... users:("ptc_server",pid=1234)
 
 # /usr/local/bin/peek 0x800201FC
 0xDEADBEEF
