@@ -1,3 +1,5 @@
+/* This file is exactly same as the log.h file from wib*/
+
 #ifndef log_h
 #define log_h
 

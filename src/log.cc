@@ -1,3 +1,5 @@
+/* This file is exactly same as the log.cc file from wib*/
+
 #include "log.h"
 #include <cstdio>
 #include <stdarg.h>
