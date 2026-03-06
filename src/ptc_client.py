@@ -38,3 +38,12 @@ elif args.cmd == "poke":
 
     val = ptc.poke(int(args.args[0],16), int(args.args[1],16))
     print(hex(val))
+
+elif args.cmd == "ping":
+
+    if len(args.args) != 0:
+        print("Usage: ping")
+        exit(1)
+
+    success = ptc.ping()
+    print("PTC alive" if success else "PTC not responding")

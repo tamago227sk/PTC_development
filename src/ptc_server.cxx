@@ -51,6 +51,7 @@ int main(int argc, char **argv) {
             rep.set_value(val);
             rep.SerializeToString(&reply_str);
         } 
+
         // Handle POKE
         else if (command.cmd().Is<ptc::Poke>()) {
             ptc::Poke poke_msg;
@@ -70,7 +71,14 @@ int main(int argc, char **argv) {
             rep.set_value(rb);
             rep.SerializeToString(&reply_str);
         }
- 
+
+        // handle PING
+        else if (command.cmd().Is<ptc::Ping>()) {
+            bool alive = ptc.ping();
+            ptc::Status status;
+            status.set_success(alive);
+            status.SerializeToString(&reply_str);
+        }
 
         else {
             glog.log("PTC Server: Received unknown command type\n");

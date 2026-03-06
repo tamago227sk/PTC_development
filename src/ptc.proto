@@ -13,6 +13,9 @@ message Command {
 /*** Low level register commands ***/
 
 //peek PTC memory
+
+message Ping{}
+
 message Peek {
     //address in PTC memory (32 bit)
     uint32 addr = 1; 

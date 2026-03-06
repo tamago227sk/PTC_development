@@ -27,3 +27,9 @@ class PTC:
         rep = ptc_pb2.RegValue()
         self.send_command(req, rep)
         return rep.value
+    
+    def ping(self):
+        req = ptc_pb2.Ping()
+        rep = ptc_pb2.Status()
+        self.send_command(req, rep)
+        return rep.success
