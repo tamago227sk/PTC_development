@@ -76,7 +76,7 @@ uint32_t PTC::peek(size_t addr) {
     // Safety: Ensure address is within our 4KB window and 4-byte aligned
     if (addr < PTC_REG_BASE || addr >= (PTC_REG_BASE + PTC_REG_SIZE) || (addr % 4) != 0) {
         glog.log("PTC: Invalid peek at 0x%08X\n", addr);
-        return 0x0;
+        return 0xFFFFFFFF;
     }
 
     // Calculate byte offset from the base
