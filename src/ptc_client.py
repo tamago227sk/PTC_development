@@ -1,4 +1,4 @@
-'''PTC client : a simple command line utility to send peek/poke commands to the PTC server for now.'''
+'''PTC client : a simple command line utility to send peek/poke/ping commands to the PTC server for now.'''
 # This program expects eomthign like "python3 ptc_client.py peek 0x800201FC" or
 # python ptc_client.py -s 192.168.1.10 peek 0x800201FC
 
@@ -39,8 +39,10 @@ elif args.cmd == "poke":
     val = ptc.poke(int(args.args[0],16), int(args.args[1],16))
     print(hex(val))
 
+# if the command is ping, then we expect no arguments, and we just want to check if the PTC server is alive
 elif args.cmd == "ping":
 
+    # if the number of arguments is not 0, then print the usage and exit
     if len(args.args) != 0:
         print("Usage: ping")
         exit(1)
