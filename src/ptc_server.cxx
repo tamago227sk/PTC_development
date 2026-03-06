@@ -6,7 +6,9 @@
 #include "ptc.h"
 #include "log.h"
 
+//main server loop (while): receive command, dispatch to PTC, send back response
 int main(int argc, char **argv) {
+
     // Set output to line buffering for consistent logging
     setvbuf(stdout, NULL, _IOLBF, 0);
     setvbuf(stderr, NULL, _IOLBF, 0);
@@ -15,12 +17,12 @@ int main(int argc, char **argv) {
     PTC ptc; 
     
     // Setup ZeroMQ context and socket
-    // use port 3345 as a placeholder; ensure this matches your client configuration
+    // use port 7820 () as a placeholder; ensure this matches your client configuration
     zmq::context_t context;
     zmq::socket_t socket(context, ZMQ_REP);
-    socket.bind("tcp://*:3345");
+    socket.bind("tcp://*:7820");
 
-    glog.log("PTC Server: Started and listening on port 3345\n");
+    glog.log("PTC Server: Started and listening on port 7820\n");
 
     while (true) {
         zmq::message_t request;

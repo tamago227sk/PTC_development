@@ -2,7 +2,7 @@ import zmq
 import ptc_pb2 # this gets created by the build.sh script
 
 class PTC:
-    def __init__(self, server='127.0.0.1', port=3345):
+    def __init__(self, server='127.0.0.1', port=7820):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REQ)
         self.socket.connect(f"tcp://{server}:{port}")
