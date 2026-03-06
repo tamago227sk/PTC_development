@@ -11,7 +11,9 @@
 #include <cerrno>
 #include <cstring>
 
-// page size for mapping (4KB)
+// page size for mapping (512 bytes)
+// 64 R/W registers and 64 R/O registers (64 x 4 + 64 x 4 = 512 bytes = 0x200)
+// but this still needs to be verified with the actual firmware!
 static constexpr size_t PTC_REG_SIZE = 0x200;
 
 // Based on top_RTL.v: VP12_EN[0] = reg_rw_in[4]
@@ -21,6 +23,7 @@ static constexpr size_t PWR_EN_OFFSET = 0x10;
 /* Constructor */
 // set the reg_ptr to MAP_FAILED as a sentinel value to indicate mapping failure for later
 PTC::PTC() : reg_ptr((volatile uint32_t*)MAP_FAILED) {
+
     // 1. Initialize I2C (Bus 0 as per documentation)
     if (i2c_init(&selected_i2c, "/dev/i2c-0") != 0) {
         glog.log("PTC: I2C init failed\n");
@@ -28,7 +31,7 @@ PTC::PTC() : reg_ptr((volatile uint32_t*)MAP_FAILED) {
         glog.log("PTC: I2C initialized successfully\n");
     }
 
-    // 2. Persistent Hardware Mapping
+    // 2. Hardware Mapping
     #ifndef SIMULATION
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
 
@@ -37,7 +40,7 @@ PTC::PTC() : reg_ptr((volatile uint32_t*)MAP_FAILED) {
     } 
     
     else {
-        // Map 4KB starting at PTC_REG_BASE (0x80020000)
+        // Map 512 bytes starting at PTC_REG_BASE (0x80020000)
         void* ptr = mmap(NULL, PTC_REG_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, PTC_REG_BASE);
         if (ptr == MAP_FAILED) {
             glog.log("PTC: mmap failed: %s\n", strerror(errno));
@@ -79,11 +82,9 @@ uint32_t PTC::peek(size_t addr) {
         return 0xFFFFFFFF;
     }
 
-    // Calculate byte offset from the base
-    size_t offset = addr - PTC_REG_BASE;
+    size_t idx = (addr - PTC_REG_BASE) >> 2;
+    return reg_ptr[idx];
     
-    // Use a char* to move exactly 'offset' bytes, then cast to uint32_t*
-    return *(volatile uint32_t*)((uint8_t*)reg_ptr + offset);
     #else
     return 0x0;
     #endif
@@ -102,7 +103,7 @@ void PTC::poke(size_t addr, uint32_t val) {
         return;
     }
 
-    size_t idx = (addr - PTC_REG_BASE) / 4;
+    size_t idx = (addr - PTC_REG_BASE) >> 2;
     reg_ptr[idx] = val;
     #endif
 }
