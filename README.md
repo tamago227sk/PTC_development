@@ -101,17 +101,19 @@ Typical build requirements include:
 
 The control stack is structured as a lightweight client–server model.
 
+<pre>
 DUNE Server
     │
     │ ZMQ (REQ/REP)
     │
     ▼
-PTC Server (`ptc_server`)
+PTC Server (ptc_server)
     │
     │ register access via /dev/mem
     │
     ▼
-PTC FPGA registers (memory mapped)
+PTC FPGA registers
+</pre>
 
 Client utilities communicate with the PTC through a ZeroMQ REQ/REP socket.
 Commands are serialized using Protocol Buffers.
@@ -234,7 +236,7 @@ Successful completion indicates binaries were installed and the server started.
 
 ### 5. Validation on the PTC
 
-SSH into the PTC:
+#### SSH into the PTC:
 
 ```bash
 ssh root@<PTC_IP>
