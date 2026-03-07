@@ -36,24 +36,24 @@ Software development repository for the <strong>PTC (Power and Timing Card)</str
 
 ## Overview
 
-This repository provides a minimal and reproducible framework for developing and validating software for the **Power and Timing Card (PTC)**. The immediate objectives are:
+This repository provides a framework for developing and validating software for the **Power and Timing Card (PTC)**. <br>
+The immediate objectives are:
 
 1. Bring up a PTC-side service (`ptc_server`).
-2. Validate basic register access (direct `peek`, followed by client → server → hardware access).
-3. Establish the foundation for slow-control extensions such as I2C sensor reads, EEPROM identification, and WIB-facing monitoring once the full hardware test stand becomes available.
-
-The emphasis of this repository is **clarity, reproducibility, and incremental bring-up**, enabling a clean path from basic connectivity checks to full slow-control functionality.
+2. Validate basic register access (direct `peek`, followed by client → server → hardware access). **←Here Now!**
+4. Establish the foundation for slow-control extensions such as I2C sensor reads, EEPROM identification, and WIB-facing monitoring once the full hardware test stand becomes available.
 
 ---
 
 ## Repository Contents
 
-| Component        | Description                                                             |
-| ---------------- | ----------------------------------------------------------------------- |
-| `src/`           | C++ source code for the PTC service and supporting utilities            |
-| `build.sh`       | Generates protobuf files and compiles the server and utilities          |
-| `ptc_init.sh`    | Startup script used to launch the PTC service on the target environment |
-| Python utilities | Lightweight scripts for validating connectivity and register access     |
+| Component        | Description                                                                 |
+|------------------|-----------------------------------------------------------------------------|
+| `src/`           | C++ source code for the PTC service, register access, and I²C utilities    |
+| `deploy.sh`      | Builds the software locally and deploys binaries to the PTC via SSH/SCP    |
+| `build.sh`       | Generates protobuf files and compiles the server (`ptc_server`) and tools  |
+| `ptc_init.sh`    | Startup script used to launch the PTC service on the target environment    |
+| Python utilities | Lightweight scripts for validating connectivity and register access        |
 
 ---
 
@@ -71,14 +71,16 @@ PTC_development/
 │   ├── log.cc / log.h
 │   ├── ptc_server.cxx
 │   ├── peek.cc
+│   ├── ptc.py
+│   ├── ptc_client.py
+│   ├── ptc_client_ping.py
 │   └── (generated) ptc.pb.cc / ptc.pb.h / ptc_pb2.py
-└── (optional) ptc_client.py / ptc.py / ptc_client_ping.py
 ```
+### Notes:
 
-### Notes
-
-* Protobuf outputs are generated automatically during the build process.
-* Compiled binaries such as `ptc_server` and `peek` are **build artifacts** and should not be committed to the repository.
+- Python utilities are located inside `src/` so they can directly import the generated protobuf module `ptc_pb2.py`.
+- The protobuf files (`ptc.pb.cc`, `ptc.pb.h`, `ptc_pb2.py`) are generated automatically during `build.sh`.
+- Compiled binaries such as `ptc_server` and `peek` are build artifacts and should not be committed.
 
 ---
 
@@ -105,26 +107,14 @@ The goal is to validate the following:
 3. Operation of the `ptc_server` ZMQ service
 4. Successful client → server → hardware register read
 
-Example validation command:
-
-```bash
-python3 src/ptc_client.py -s <PTC_IP> peek 0x800201FC
-```
-
-A successful result should return the expected register value:
-
-```
-0xDEADBEEF
-```
-
-
 
 ### Assumptions
 
 * The PTC boots successfully from the microSD image.
 * Login access to the PTC as `root` is available.
-* The PTC and DUNE server share the same routable network.
 * `ptc_server` is configured to bind to **TCP port 7820**.
+* PTC address is **127.0.0.1** (set as default).
+* **Those need to be updated once address is confirmed in 'ptc_client.py', 'ptc.py'**
 
 
 
@@ -240,7 +230,7 @@ Expected output:
 
 
 
-### 6. Validation from the DUNE Server
+### 6. Validation of PTC client
 
 Execute the client command:
 
@@ -289,10 +279,10 @@ $ python3 src/ptc_client.py -s <PTC_IP> peek 0x800201FC
 
 ```
 # pidof ptc_server
-1234
+7820
 
 # ss -lntp | grep 7820
-LISTEN ... 0.0.0.0:7820 ... users:("ptc_server",pid=1234)
+LISTEN ... 0.0.0.0:XX ... users:("ptc_server",pid=7820)
 
 # /usr/local/bin/peek 0x800201FC
 0xDEADBEEF
@@ -300,21 +290,6 @@ LISTEN ... 0.0.0.0:7820 ... users:("ptc_server",pid=1234)
 
 ---
 
-## Development Workflow
-
-### Git Usage
-
-Recommended practices:
-
-* Commit small, well-defined changes.
-* Include commit messages describing both **the modification and validation method**.
-
-Example tag for validated states:
-
-```bash
-git tag -a stand-ready-YYYYMMDD -m "PTC server + ping/peek validated"
-git push --tags
-```
 
 ### Branching Strategy
 
@@ -323,11 +298,10 @@ git push --tags
 | `main`      | Stable, runnable repository state |
 | `feature/*` | Development of new capabilities   |
 
-Example branches:
+Probably the next branch to develop is:
 
 ```
 feature/i2c-sensors
-feature/wib-i2c
 ```
 
 ---
