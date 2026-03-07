@@ -18,6 +18,7 @@ Software development repository for the <strong>PTC (Power and Timing Card)</str
 - [Repository Contents](#repository-contents)
 - [Repository Layout](#repository-layout)
 - [Dependencies](#dependencies)
+- [Software Architecture](#software-architecture)
 - [PTC Bring-Up Quickstart (Port 7820)](#ptc-bring-up-quickstart-port-7820)
   - [Assumptions](#assumptions)
   - [1. Identify the PTC IP Address](#1-identify-the-ptc-ip-address)
@@ -41,7 +42,7 @@ The immediate objectives are:
 
 1. Bring up a PTC-side service (`ptc_server`).
 2. Validate basic register access (direct `peek`, followed by client → server → hardware access). **←Here Now!**
-4. Establish the foundation for slow-control extensions such as I2C sensor reads, EEPROM identification, and WIB-facing monitoring once the full hardware test stand becomes available.
+3. Establish the foundation for slow-control extensions such as I2C sensor reads, EEPROM identification, and WIB-facing monitoring once the full hardware test stand becomes available.
 
 ---
 
@@ -94,6 +95,45 @@ Typical build requirements include:
 * Python 3 
 
 
+---
+
+## Software Architecture
+
+The control stack is structured as a lightweight client–server model.
+
+DUNE Server
+    │
+    │ ZMQ (REQ/REP)
+    │
+    ▼
+PTC Server (`ptc_server`)
+    │
+    │ register access via /dev/mem
+    │
+    ▼
+PTC FPGA registers (memory mapped)
+
+Client utilities communicate with the PTC through a ZeroMQ REQ/REP socket.
+Commands are serialized using Protocol Buffers.
+
+Main layers:
+
+1. **Client layer**
+   - `ptc_client.py`
+   - sends commands (`peek`, `poke`, `ping`)
+
+2. **Transport layer**
+   - ZeroMQ REQ/REP messaging
+
+3. **Command serialization**
+   - protobuf messages (`ptc.proto`)
+
+4. **Server dispatch**
+   - `ptc_server.cxx`
+
+5. **Hardware access**
+   - `ptc.cc` → `/dev/mem` register mapping
+     
 ---
 
 ## PTC Bring-Up Quickstart (Port 7820)
