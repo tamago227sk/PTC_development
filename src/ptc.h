@@ -42,8 +42,6 @@ public:
 
 protected:
     volatile uint32_t *reg_ptr; // Pointer to the mapped hardware memory
-    // Later:
-    i2c_t selected_i2c;
     void select_bus(uint8_t bus_idx);
     // IOReg regs;
 };

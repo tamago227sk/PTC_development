@@ -110,7 +110,8 @@ void PTC::poke(size_t addr, uint32_t val) {
 
 /* Power on WIB */
 void PTC::power_wib(int slot, bool on) {
-    // This currently does not perform any hardware writes.
+    select_bus(slot); 
+    // Then perform the I2C write to the power controller (LTC2945)
     glog.log("PTC: power_wib called for slot %d (on=%s) - [Placeholder: No action taken]\n", slot, on ? "true" : "false");
     return;
 }

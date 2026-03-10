@@ -7,12 +7,12 @@
 #include <cerrno>
 #include <unistd.h>
 #include <linux/i2c.h>
-extern "C" { //That's a bug!
+// wrapper extern "C" { 
     #include <linux/i2c-dev.h>
     #ifndef SIMULATION 
     #include <i2c/smbus.h>
     #endif
-}
+//wrapper }
 #include <sys/ioctl.h>
 
 /* initialize the i2c structure by opening the i2c device file and storing the file descriptor in the structure */

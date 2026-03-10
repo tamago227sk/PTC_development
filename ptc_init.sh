@@ -18,7 +18,7 @@ echo "PTC: Starting initialization..." > /var/log/ptc_startup.log
 echo "Register 0x800201FC reads $(peek 0x800201FC)" >> /var/log/ptc_startup.log
 
 # 4. Launch the PTC Server
-echo "Starting ptc_server on port 1234" >> /var/log/ptc_startup.log
+echo "Starting ptc_server on port 7820" >> /var/log/ptc_startup.log
 # Redirect errors and output to logs
 /bin/ptc_server 2>/var/log/ptc_server.err >/var/log/ptc_server.log &
 
