@@ -158,7 +158,7 @@ int i2c_readwrite(i2c_t *i2c, uint8_t slave, uint8_t *rbuf, size_t rlen, uint8_t
 }
 
 /* Write register, then read data */
-int i2c_writeread(i2c_t *i2c, uint8_t slave, uint8_t *wbuf, size_t wlen, uint8_t *rbuf, size_t rlen) {
+int i2c_writeread(i2c_t *i2c, uint8_t slave, uint8_t *rbuf, size_t rlen, uint8_t *wbuf, size_t wlen) {
     i2c->slave = -1; 
 
     // the same thing as i2c_readwrite, but the order of the read and write operations is reversed
