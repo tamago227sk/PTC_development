@@ -45,7 +45,7 @@ int i2c_free(i2c_t *i2c) {
 
 /* Basic read */
 int i2c_read(i2c_t *i2c, uint8_t slave, uint8_t *buf, size_t len){
-    i2c->slave = -1; // resetting your struct’s cached field
+    i2c->slave = 0xFF; // resetting your struct’s cached field
 
     // target slave address : slave
     // flags : I2C_M_RD means read operation
@@ -71,7 +71,7 @@ int i2c_read(i2c_t *i2c, uint8_t slave, uint8_t *buf, size_t len){
 
 /* Basic write */
 int i2c_write(i2c_t *i2c, uint8_t slave, uint8_t *buf, size_t len){
-    i2c->slave = -1; //resetting your struct’s cached field
+    i2c->slave = 0xFF; //resetting your struct’s cached field
 
     // target slave address : slave
     // flags : 0 means write operation
@@ -126,7 +126,7 @@ int i2c_reg_write(i2c_t *i2c, uint8_t slave, uint8_t reg, uint8_t data) {
 
 /* Read register, then write data */
 int i2c_readwrite(i2c_t *i2c, uint8_t slave, uint8_t *rbuf, size_t rlen, uint8_t *wbuf, size_t wlen) {
-    i2c->slave = -1; //resetting your struct’s cached field
+    i2c->slave = 0xFF; //resetting your struct’s cached field
 
     // maiking an array of i2c_msg structures (pre-defined) to represent the read and write operations
     
@@ -159,7 +159,7 @@ int i2c_readwrite(i2c_t *i2c, uint8_t slave, uint8_t *rbuf, size_t rlen, uint8_t
 
 /* Write register, then read data */
 int i2c_writeread(i2c_t *i2c, uint8_t slave, uint8_t *rbuf, size_t rlen, uint8_t *wbuf, size_t wlen) {
-    i2c->slave = -1; 
+    i2c->slave = 0xFF; 
 
     // the same thing as i2c_readwrite, but the order of the read and write operations is reversed
     // for detils, check the comments in the implementation of i2c_readwrite above
