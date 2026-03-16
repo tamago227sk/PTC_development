@@ -178,19 +178,9 @@ Successful execution should return ICMP responses from the PTC.
 
 
 
-### 2. Optional: Enable Passwordless SSH
+### 2. SSH and login 
 
-For convenience during deployment:
-
-```bash
-ssh-copy-id root@<PTC_IP>
-```
-
-Verify access:
-
-```bash
-ssh root@<PTC_IP>
-```
+```ADD INFOR HERE ONCE ITS READY```
 
 
 
