@@ -92,6 +92,17 @@ int main(int argc, char **argv) {
             status.SerializeToString(&reply_str);
         }
 
+        else if (command.cmd().Is<ptc::ReadTemp>()) {
+            ptc::ReadTemp req;
+            command.cmd().UnpackTo(&req);
+
+            double temp = ptc.read_temperature(req.addr());
+
+            ptc::TempValue rep;
+            rep.set_addr(req.addr());
+            rep.set_value(temp);
+        }
+
         else {
             glog.log("PTC Server: Received unknown command type\n");
             ptc::Status status;

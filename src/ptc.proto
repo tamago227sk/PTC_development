@@ -45,3 +45,13 @@ message RegValue {
     uint32 addr = 1;
     uint32 value = 2;
 }
+
+// For reading temperature
+message ReadTemp {
+    uint32 addr = 1;
+}
+
+message TempValue {
+    uint32 addr = 1;
+    double value = 2;
+}

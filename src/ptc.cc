@@ -116,9 +116,40 @@ void PTC::power_wib(int slot, bool on) {
     return;
 }
 
-/* Read temperature from sensor - Kept empty per request */
+/*Helper function for reading the i2c registers*/
+int PTC::i2c_read_reg16(uint8_t addr, uint8_t reg, uint16_t &val) {
+    uint8_t wbuf[1] = {reg};
+    uint8_t rbuf[2];
+
+    int ret = i2c_writeread(&selected_i2c, addr, wbuf, 1, rbuf, 2);
+    if (ret < 0) {
+        glog.log("I2C read failed (addr=0x%02X reg=0x%02X)\n", addr, reg);
+        return -1;
+    }
+
+    val = (rbuf[0] << 8) | rbuf[1]; // big endian
+    return 0;
+}
+
+/* Read temperature from sensor */
 double PTC::read_temperature(uint8_t addr) {
-    return 0.0;
+    select_bus(0); // NEEDS TO BE CHECKED!!!!
+
+    uint16_t raw;
+
+    // Assume we're reading 0x00 register
+    if (i2c_read_reg16(addr, 0x00, raw) < 0) {
+        return NAN;
+    }
+
+    // TMP117 uses signed 16-bit
+    int16_t signed_raw = (int16_t)raw;
+
+    // for TMP117, 1 LSB = 0.0078125 C
+    double temp = signed_raw * 0.0078125;
+    glog.log("TMP117[0x%02X] = %.2f C\n", addr, temp);
+
+    return temp;
 }
 
 /* Placeholder for voltage readings */

@@ -32,6 +32,8 @@ public:
     // Power Control 
     void power_wib(int slot, bool on);
 
+    int i2c_read_reg16(uint8_t addr, uint8_t reg, uint16_t &val);
+
     // Sensor reading and returning value as double 
     double read_temperature(uint8_t addr);
     double read_voltage(uint8_t channel);
