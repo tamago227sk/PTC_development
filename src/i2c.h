@@ -31,7 +31,7 @@ int i2c_write(i2c_t *i2c, uint8_t slave, uint8_t *buf, size_t len);
 /* Write register, then read data */
 /* Also, read register, then write data */
 int i2c_readwrite(i2c_t *i2c, uint8_t slave, uint8_t *rbuf, size_t rlen, uint8_t *wbuf, size_t wlen);
-int i2c_writeread(i2c_t *i2c, uint8_t slave, uint8_t *rbuf, size_t rlen, uint8_t *wbuf, size_t wlen);
+int i2c_writeread(i2c_t *i2c, uint8_t slave, uint8_t *wbuf, size_t wlen, uint8_t *rbuf, size_t rlen);
 
 /* Register Access */
 // here, it assumes the device behaves like a register-mappewd I2C device, 
