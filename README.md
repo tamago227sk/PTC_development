@@ -178,19 +178,9 @@ Successful execution should return ICMP responses from the PTC.
 
 
 
-### 2. Optional: Enable Passwordless SSH
+### 2. SSH and login 
 
-For convenience during deployment:
-
-```bash
-ssh-copy-id root@<PTC_IP>
-```
-
-Verify access:
-
-```bash
-ssh root@<PTC_IP>
-```
+```ADD INFOR HERE ONCE ITS READY```
 
 
 
@@ -332,22 +322,6 @@ LISTEN ... 0.0.0.0:XX ... users:("ptc_server",pid=7820)
 
 ---
 
-
-### Branching Strategy
-
-| Branch      | Purpose                           |
-| ----------- | --------------------------------- |
-| `main`      | Stable, runnable repository state |
-| `feature/*` | Development of new capabilities   |
-
-Probably the next branch to develop is:
-
-```
-feature/i2c-sensors
-```
-
----
-
 ## Roadmap
 
 This repository is being developed alongside a hardware test stand consisting of:
@@ -357,9 +331,3 @@ This repository is being developed alongside a hardware test stand consisting of
 * optional 1× FEMB
 * a DUNE server on the same network
 
-Planned milestones:
-
-1. Communication baseline (server launch and register read validation)
-2. Local PTC monitoring via onboard I2C sensors and EEPROM
-3. WIB-side monitoring through the PTC PL I2C path
-4. Improved operational robustness (logging, error handling, timeouts)
