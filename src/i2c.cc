@@ -9,7 +9,7 @@
 #include <linux/i2c.h>
 extern "C" { 
     #include <linux/i2c-dev.h>
-    #ifndef SIMULATION 
+    #if 0 
     #include <i2c/smbus.h>
     #endif
 }
