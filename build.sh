@@ -11,20 +11,22 @@ echo "--- Step 2: Compiling ptc_server ---"
 # -Isrc allows the compiler to find "ptc.h" and "ptc.pb.h"
 g++ -std=c++11 -Isrc -o ptc_server \
     src/ptc_server.cxx \
-    src/ptc.cc \
-    src/i2c.cc \
-    src/log.cc \
+    #src/ptc.cc \
+    #src/i2c.cc \
+    #src/log.cc \
     src/ptc.pb.cc \
-    -lzmq -lprotobuf
+    -L/usr/local/lib \
+    -lzmq -lprotobuf -lpthread
 
 echo "--- Step 3: Compiling peek utility ---"
 g++ -std=c++11 -Isrc -o peek \
     src/ptc.pb.cc \
     src/peek.cc \
-    src/ptc.cc \
-    src/i2c.cc \
-    src/log.cc \
-    -lzmq -lprotobuf
+    #src/ptc.cc \
+    #src/i2c.cc \
+    #src/log.cc \
+    -L/usr/local/lib \
+    -lzmq -lprotobuf -lpthread
 
 echo "--- Step 4: Deployment ---"
 # This makes the commands available globally as 'peek' and 'ptc_server'
