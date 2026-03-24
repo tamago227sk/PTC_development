@@ -30,7 +30,10 @@ g++ -std=c++11 -Isrc -o peek \
 
 echo "--- Step 4: Deployment ---"
 # This makes the commands available globally as 'peek' and 'ptc_server'
-sudo cp ptc_server /bin/
-sudo cp peek /bin/
+INSTALL_DIR=/usr/local/bin
+sudo mkdir -p $INSTALL_DIR
+sudo cp ptc_server $INSTALL_DIR/
+sudo cp peek $INSTALL_DIR/
+sudo chmod +x $INSTALL_DIR/ptc_server $INSTALL_DIR/peek
 
 echo "Build Complete. Binaries installed to /bin/"
