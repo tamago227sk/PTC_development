@@ -22,3 +22,8 @@ src/*_pb2.py
 # logs
 *.log
 *.err
+
+# external dependencies (do not track)
+cppzmq/
+i2c-tools/
+libzmq/
