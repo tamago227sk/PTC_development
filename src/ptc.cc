@@ -10,6 +10,8 @@
 #include <fcntl.h>
 #include <cerrno>
 #include <cstring>
+#include <cmath>
+#include <math.h>
 
 // page size for mapping (512 bytes)
 // 64 R/W registers and 64 R/O registers (64 x 4 + 64 x 4 = 512 bytes = 0x200)
