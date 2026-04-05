@@ -17,6 +17,7 @@ Software development repository for the <strong>PTC (Power and Timing Card)</str
 - [Overview](#overview)
 - [Repository Contents](#repository-contents)
 - [Repository Layout](#repository-layout)
+- [Network Model](#network-model)
 - [Dependencies](#dependencies)
 - [Software Architecture](#software-architecture)
 - [PTC Bring-Up Quickstart (Port 7820)](#ptc-bring-up-quickstart-port-7820)
@@ -38,7 +39,7 @@ This repository provides a framework for developing and validating software for 
 The immediate objectives are:
 
 1. Bring up a PTC-side service (`ptc_server`).
-2. Validate basic register access (direct `peek`, followed by client → server → hardware access). **←Here Now!**
+2. Validate basic register access (direct `peek`, followed by client → server → hardware access). 
 3. Establish the foundation for slow-control extensions such as I2C sensor reads, EEPROM identification, and WIB-facing monitoring once the full hardware test stand becomes available.
 
 ---
@@ -49,6 +50,7 @@ The immediate objectives are:
 |------------------|-----------------------------------------------------------------------------|
 | `src/`           | C++ source code for the PTC service, register access, and I²C utilities    |
 | `build.sh`       | Generates protobuf files and compiles the server (`ptc_server`) and tools  |
+| `deploy.sh`      | ⚠️ Legacy script (builds locally → may cause arch mismatch)                |
 | `ptc_init.sh`    | Startup script used to launch the PTC service on the target environment    |
 | Python utilities | Lightweight scripts for validating connectivity and register access        |
 
@@ -81,17 +83,6 @@ PTC_development/
 - Compiled binaries such as `ptc_server` and `peek` are build artifacts and should not be committed.
 
 ---
-
-## Dependencies
-
-Typical build requirements include:
-
-* C++ compiler 
-* `protoc` (Protocol Buffers compiler)
-* ZeroMQ 
-* Python 3 
-
----
 ## Network Model
 
 The PTC is operated on a **private network with no internet access**.
@@ -109,6 +100,48 @@ DUNE Server (internet)
     ↓ scp
 PTC (no internet)
     ↓ build.sh
+
+---
+## Dependencies
+
+Typical build requirements include:
+
+* C++ compiler 
+* `protoc` (Protocol Buffers compiler)
+* ZeroMQ 
+* Python 3
+
+### Dependency Setup (DUNE → PTC)
+#### On DUNE server (download only)
+```
+git clone https://github.com/zeromq/libzmq.git
+git clone https://github.com/protocolbuffers/protobuf.git
+
+tar -czf deps.tar.gz libzmq protobuf
+```
+#### Copy to PTC server
+```
+scp deps.tar.gz root@<PTC_IP>:~
+```
+
+#### On PTC server (build dependencies)
+```
+tar -xzf deps.tar.gz
+
+cd libzmq
+./autogen.sh
+./configure
+make -j2
+make install
+ldconfig
+
+cd ../protobuf
+./autogen.sh
+./configure
+make -j2
+make install
+ldconfig
+```
 
 ---
 
@@ -195,7 +228,9 @@ Successful execution should return ICMP responses from the PTC.
 
 ### 2. SSH and login 
 
-```ADD INFOR HERE ONCE ITS READY```
+```
+ssh root@<PTC_IP>
+```
 
 
 
@@ -386,4 +421,9 @@ This repository is being developed alongside a hardware test stand consisting of
 * 1× WIB
 * optional 1× FEMB
 * a DUNE server on the same network
+
+The next steps are:
+* Auto-start ptc_server at boot
+* Expand I2C sensor support
+* Slow controls integration
 
