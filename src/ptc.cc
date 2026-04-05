@@ -141,7 +141,7 @@ double PTC::read_temperature(uint8_t addr) {
 
     // Assume we're reading 0x00 register
     if (i2c_read_reg16(addr, 0x00, raw) < 0) {
-        return NAN;
+        return 0.0;
     }
 
     // TMP117 uses signed 16-bit
