@@ -22,15 +22,12 @@ Software development repository for the <strong>PTC (Power and Timing Card)</str
 - [PTC Bring-Up Quickstart (Port 7820)](#ptc-bring-up-quickstart-port-7820)
   - [Assumptions](#assumptions)
   - [1. Identify the PTC IP Address](#1-identify-the-ptc-ip-address)
-  - [2. Optional: Enable Passwordless SSH](#2-optional-enable-passwordless-ssh)
-  - [3. Clone the Repository](#3-clone-the-repository)
-  - [4. Build and Deploy](#4-build-and-deploy)
-  - [5. Validation on the PTC](#5-validation-on-the-ptc)
-  - [6. Validation from the DUNE Server](#6-validation-from-the-dune-server)
+  - [2. SSH and login](#2-ssh-and-login)
+  - [3. Clone the Repository and transfer to PTC](#3-clone-the-repository-and-transfer-to-ptc)
+  - [4. Build on the PTC](#4-build-on-the-ptc)
+  - [5. Start the Server on the PTC](#5-start-the-server-on-the-ptc)
+  - [6. Validation of PTC client](#6-validation-of-ptc-client)
 - [Example Successful Output](#example-successful-output)
-- [Development Workflow](#development-workflow)
-  - [Git Usage](#git-usage)
-  - [Branching Strategy](#branching-strategy)
 - [Roadmap](#roadmap)
 
 ---
@@ -51,18 +48,18 @@ The immediate objectives are:
 | Component        | Description                                                                 |
 |------------------|-----------------------------------------------------------------------------|
 | `src/`           | C++ source code for the PTC service, register access, and I²C utilities    |
-| `deploy.sh`      | Builds the software locally and deploys binaries to the PTC via SSH/SCP    |
 | `build.sh`       | Generates protobuf files and compiles the server (`ptc_server`) and tools  |
 | `ptc_init.sh`    | Startup script used to launch the PTC service on the target environment    |
 | Python utilities | Lightweight scripts for validating connectivity and register access        |
 
+> ⚠️ Note: `deploy.sh` is deprecated and no longer used.  
+> All builds are performed directly on the PTC.
 ---
 
 ## Repository Layout
 
 ```
 PTC_development/
-├── deploy.sh
 ├── build.sh
 ├── ptc_init.sh
 ├── src/
@@ -94,6 +91,24 @@ Typical build requirements include:
 * ZeroMQ 
 * Python 3 
 
+---
+## Network Model
+
+The PTC is operated on a **private network with no internet access**.
+
+As a result:
+
+- The repository must be cloned on a machine with internet access (e.g. DUNE server)
+- The code must then be transferred to the PTC manually (e.g. via `scp`)
+- Dependencies must already exist on the PTC or be manually installed
+
+Typical workflow:
+
+DUNE Server (internet)
+    ↓ git clone
+    ↓ scp
+PTC (no internet)
+    ↓ build.sh
 
 ---
 
@@ -184,12 +199,13 @@ Successful execution should return ICMP responses from the PTC.
 
 
 
-### 3. Clone the Repository
+### 3. Clone the Repository and transfer to PTC
 
 On the DUNE server:
 
 ```bash
 git clone https://github.com/tamago227sk/PTC_development.git
+scp -r PTC_development root@<PTC_IP>:~/
 cd PTC_development
 ```
 
@@ -197,56 +213,42 @@ Ensure required build dependencies are available before proceeding.
 
 
 
-### 4. Build and Deploy
+### 4. Build on the PTC
 
-From the repository root on the DUNE server:
-
-```bash
-chmod +x deploy.sh
-./deploy.sh <PTC_IP>
-```
-
-#### What `deploy.sh` performs
-
-1. Runs `build.sh` on the development machine
-2. Builds `ptc_server` and `peek`
-3. Transfers binaries to the PTC using `scp`
-4. Installs binaries on the PTC
-5. Launches `ptc_server`
-
-Logs are written to:
-
-```
-/var/log/ptc_server.log
-```
-
-Successful completion indicates binaries were installed and the server started.
-
-
-
-### 5. Validation on the PTC
-
-#### SSH into the PTC:
+On the PTC server:
 
 ```bash
-ssh root@<PTC_IP>
+cd ~/PTC_development
+chmod +x build.sh
+./build.sh
 ```
+
+Successful completion expect the output:
+
+```
+root@ptc:~/PTC_development# ./build.sh
+--- Step 1: Generating Protobuf Files (C++ and Python) ---
+--- Step 2: Compiling ptc_server ---
+--- Step 3: Compiling peek utility ---
+--- Step 4: Deployment ---
+Build Complete. Binaries installed to /bin/
+```
+
+
+### 5. Start the Server on the PTC
 
 #### Confirm `ptc_server` is running
 
 ```bash
-pidof ptc_server
+ptc_server
 ```
 
-Expected output: the server process ID.
-
-#### Confirm server port binding
-
-```bash
-ss -lntp | grep 7820
+Expected output:
 ```
-
-Expected output: a `LISTEN` entry for port `7820`.
+PTC: I2C initialized successfully
+PTC: Hardware registers mapped at 0x80020000
+PTC Server: Started and listening on port 7820
+```
 
 #### Confirm direct register access
 
@@ -264,19 +266,64 @@ Expected output:
 
 ### 6. Validation of PTC client
 
-Execute the client command:
+#### Confirm ping function
+While keeping the ptc_server running on PTC, execute the client command from /PTC_development/src on dune server
+```bash
+python ptc_client.py -s 192.168.0.19 ping
+```
+
+Expected successful output:
+
+```
+PTC alive
+```
+
+#### Confirm peek function
+While keeping the ptc_server running on PTC, execute the client command from /PTC_development/src on dune server
 
 ```bash
 python3 src/ptc_client.py -s <PTC_IP> peek 0x800201FC
 ```
 
-Expected output:
+Expected successful output:
 
 ```
 0xdeadbeef
 ```
 
-This confirms the full stack:
+#### Confirm poke function
+While keeping the ptc_server running on PTC, execute the client command from /PTC_development/src on dune server
+
+```bash
+python3 src/ptc_client.py -s <PTC_IP> peek xxxxxxxxxx
+```
+
+Note: xxxxxxxxxx could be any unassigned RW registers (from #13 to #63). For #13, it'd be 0x80020034. The expected value is 0x0 if this resgiter hasn't been re-written.  
+
+Then, execute 
+```bash
+python3 src/ptc_client.py -s <PTC_IP> poke xxxxxxxxxx 0xA5A5A5A5
+```
+Note: the value can be anything, but using 0xA5A5A5A5 as an example here. the expected output is 0xa5a5a5a5.
+
+Fianlly, execute 
+```bash
+python3 src/ptc_client.py -s <PTC_IP> peek xxxxxxxxxx 
+```
+Confirm it reurns the value that you've typed in previously. 
+
+Successful expected output woudl look like:
+
+```
+[skubota@dune01 src]$ python ptc_client.py -s 192.168.0.19 peek 0x80020034
+0x0
+[skubota@dune01 src]$ python ptc_client.py -s 192.168.0.19 poke 0x80020034 0xA5A5A5A5
+0xa5a5a5a5
+[skubota@dune01 src]$ python ptc_client.py -s 192.168.0.19 peek 0x80020034
+0xa5a5a5a5
+```
+
+These confirms the full stack:
 
 * Ethernet communication
 * ZMQ REQ/REP transport
@@ -288,36 +335,45 @@ This confirms the full stack:
 
 ### Example Successful Output
 
-#### DUNE Server
-
-```
-$ ./deploy.sh <PTC_IP>
-=== Building on dune-server ===
-... build output ...
-=== Copying binaries to PTC ===
-ptc_server 100%
-peek       100%
-=== Installing ===
-Installed: /usr/local/bin/ptc_server
-Installed: /usr/local/bin/peek
-ptc_server log: /var/log/ptc_server.log
-=== Done ===
-
-$ python3 src/ptc_client.py -s <PTC_IP> peek 0x800201FC
-0xdeadbeef
-```
-
 #### PTC
 
 ```
-# pidof ptc_server
-7820
+root@ptc:~# cd PTC_development/
+root@ptc:~/PTC_development# ./build.sh
+--- Step 1: Generating Protobuf Files (C++ and Python) ---
+--- Step 2: Compiling ptc_server ---
+--- Step 3: Compiling peek utility ---
+--- Step 4: Deployment ---
+Build Complete. Binaries installed to /bin/
+root@ptc:~/PTC_development# peek 0x800201FC    
+PTC: I2C initialized successfully
+PTC: Hardware registers mapped at 0x80020000
+0xdeadbeef
+PTC destroyed
+root@ptc:~/PTC_development# ptc_server
+PTC: I2C initialized successfully
+PTC: Hardware registers mapped at 0x80020000
+PTC Server: Started and listening on port 7820
+^Z
+[1]+  Stopped(SIGTSTP)        ptc_server
+root@ptc:~/PTC_development# kill %1
+[1]+  Terminated              ptc_server
+root@ptc:~/PTC_development# jobs
 
-# ss -lntp | grep 7820
-LISTEN ... 0.0.0.0:XX ... users:("ptc_server",pid=7820)
+```
 
-# /usr/local/bin/peek 0x800201FC
-0xDEADBEEF
+#### DUNE Server
+```
+[skubota@dune01 src]$ python ptc_client.py -s 192.168.0.19 ping
+PTC alive
+[skubota@dune01 src]$ python ptc_client.py -s 192.168.0.19 peek 0x800201FC
+0xdeadbeef
+[skubota@dune01 src]$ python ptc_client.py -s 192.168.0.19 peek 0x80020034
+0x0
+[skubota@dune01 src]$ python ptc_client.py -s 192.168.0.19 poke 0x80020034 0xA5A5A5A5
+0xa5a5a5a5
+[skubota@dune01 src]$ python ptc_client.py -s 192.168.0.19 peek 0x80020034
+0xa5a5a5a5
 ```
 
 ---
