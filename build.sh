@@ -9,7 +9,7 @@ protoc --cpp_out=src/ --python_out=src/ --proto_path=src/ src/ptc.proto
 
 echo "--- Step 2: Compiling ptc_server ---"
 # -Isrc allows the compiler to find "ptc.h" and "ptc.pb.h"
-g++ -std=c++11 -Isrc -o ptc_server \
+g++ -std=c++11 -Isrc -I./include -o ptc_server \
     src/ptc_server.cxx \
     src/ptc.cc \
     src/i2c.cc \
@@ -18,7 +18,7 @@ g++ -std=c++11 -Isrc -o ptc_server \
     -lzmq -lprotobuf
 
 echo "--- Step 3: Compiling peek utility ---"
-g++ -std=c++11 -Isrc -o peek \
+g++ -std=c++11 -Isrc -I./include -o peek \
     src/ptc.pb.cc \
     src/peek.cc \
     src/ptc.cc \
