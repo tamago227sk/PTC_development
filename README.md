@@ -29,6 +29,7 @@ Software development repository for the <strong>PTC (Power and Timing Card)</str
   - [5. Start the Server on the PTC](#5-start-the-server-on-the-ptc)
   - [6. Validation of PTC client](#6-validation-of-ptc-client)
 - [Example Successful Output](#example-successful-output)
+- [Running server on Boot](#running-server-on-boot)
 - [Roadmap](#roadmap)
 
 ---
@@ -410,6 +411,183 @@ PTC alive
 [skubota@dune01 src]$ python ptc_client.py -s 192.168.0.19 peek 0x80020034
 0xa5a5a5a5
 ```
+
+---
+
+## Running server on Boot
+
+This section describes how to configure the PTC such that `ptc_server` starts automatically on system boot. This ensures the slow-control interface is always available after power cycling the board.
+
+
+### 1. Create Init Script
+
+Create a SysV init script:
+
+```bash
+sudo vim /etc/init.d/ptc_server
+```
+
+Example script:
+
+```bash
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          ptc_server
+# Required-Start:    $network
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start PTC server
+### END INIT INFO
+
+case "$1" in
+  start)
+    echo "Starting PTC server"
+    cd /root/PTC_development
+    /bin/sh /root/PTC_development/ptc_init.sh > /var/log/ptc.log 2>&1 &
+    ;;
+  stop)
+    echo "Stopping PTC server"
+    pkill ptc_server
+    ;;
+  restart)
+    $0 stop
+    $0 start
+    ;;
+  *)
+    echo "Usage: /etc/init.d/ptc_server {start|stop|restart}"
+    exit 1
+    ;;
+esac
+
+exit 0
+```
+
+
+### 2. Make Script Executable
+
+```bash
+sudo chmod +x /etc/init.d/ptc_server
+```
+
+
+### 3. Register Service for Boot
+
+```bash
+sudo update-rc.d ptc_server defaults
+```
+
+This creates symbolic links in `/etc/rc*.d/` corresponding to system runlevels.
+
+If already configured, the system may report:
+
+```
+System startup links for /etc/init.d/ptc_server already exist.
+```
+
+
+### 4. Verify Service is Enabled
+
+```bash
+systemctl is-enabled ptc_server
+```
+
+Expected output:
+
+```
+enabled
+```
+
+(Note: This is a SysV service; systemd provides compatibility via `systemd-sysv-install`.)
+
+
+### 5. Confirm Runlevel Links
+
+```bash
+ls /etc/rc*.d | grep ptc_server
+```
+
+Typical output:
+
+```
+S20ptc_server   # Start on boot
+K20ptc_server   # Stop on shutdown
+```
+
+
+### 6. Manual Test
+
+Start the service:
+
+```bash
+sudo /etc/init.d/ptc_server start
+```
+
+Verify that it is running:
+
+```bash
+ps aux | grep ptc_server
+```
+
+Expected to see:
+
+```
+/bin/ptc_server
+```
+
+
+### 7. Restart Test
+
+```bash
+sudo /etc/init.d/ptc_server restart
+```
+
+Ensure:
+- Only one instance is running
+- No duplicate processes are spawned
+
+
+### 8. Reboot Validation
+
+```bash
+sudo reboot
+```
+
+After reboot:
+
+```bash
+ps aux | grep ptc_server
+```
+
+If configured correctly, `ptc_server` should start automatically.
+
+
+
+### Notes and Recommendations
+
+- Always use **absolute paths** in init scripts  
+  Boot environments do not inherit user shell environments.
+
+- Ensure working directory is set explicitly (`cd /root/PTC_development`)  
+  Relative paths in `ptc_init.sh` may otherwise fail silently.
+
+- Logs are written to:
+  ```
+  /var/log/ptc.log
+  ```
+
+- For debugging:
+  ```bash
+  cat /var/log/ptc.log
+  ```
+
+
+### Context within PTC System
+
+The PTC operates as a slow-control interface between hardware subsystems (power regulation, timing distribution, and I2C sensor readout) and external control systems via Ethernet. :contentReference[oaicite:0]{index=0}
+
+Ensuring `ptc_server` runs at boot guarantees that register access, monitoring, and control pathways are available immediately after system initialization.
 
 ---
 
