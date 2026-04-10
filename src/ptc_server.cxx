@@ -39,6 +39,9 @@ int main(int argc, char **argv) {
 
         // Parse the received command using Protobuf
         ptc::Command command;
+
+	glog.log("PTC Server: Received command type_url = %s\n",command.cmd().type_url().c_str());
+
         if (!command.ParseFromArray(request.data(), request.size())) {
             glog.log("PTC Server: Failed to parse incoming command\n");
             continue;
@@ -92,10 +95,76 @@ int main(int argc, char **argv) {
             status.SerializeToString(&reply_str);
         }
 
+
+        //else if (command.cmd().Is<ptc::ReadTemp>()) {
+          //  ptc::ReadTemp req;
+            //command.cmd().UnpackTo(&req);
+
+            //double temp = ptc.read_temperature(req.addr());
+
+            //ptc::TempValue rep;
+            //rep.set_addr(req.addr());
+            //rep.set_value(temp);
+        //}
+
+	        // handle temperature read
+        else if (command.cmd().Is<ptc::ReadTemperature>()) {
+            ptc::ReadTemperature temp_msg;
+            command.cmd().UnpackTo(&temp_msg);
+
+            double temp_c = ptc.read_tmp117_temp_c(
+                static_cast<uint8_t>(temp_msg.mux_channel()),
+                static_cast<uint8_t>(temp_msg.addr())
+            );
+
+	    glog.log("PTC Server: ReadTemperature value = %f\n", temp_c);
+
+            ptc::DoubleValue rep;
+            rep.set_value(temp_c);
+            rep.SerializeToString(&reply_str);
+        }
+
+        // handle voltage read
+        else if (command.cmd().Is<ptc::ReadVoltage>()) {
+            ptc::ReadVoltage volt_msg;
+            command.cmd().UnpackTo(&volt_msg);
+
+            double volts = ptc.read_ltc2945_voltage_v(
+                static_cast<uint8_t>(volt_msg.mux_channel()),
+                static_cast<uint8_t>(volt_msg.addr())
+            );
+
+	    glog.log("PTC Server: ReadVoltage value = %f\n", volts);
+
+
+            ptc::DoubleValue rep;
+            rep.set_value(volts);
+            rep.SerializeToString(&reply_str);
+        }
+
+        // handle current read
+        else if (command.cmd().Is<ptc::ReadCurrent>()) {
+            ptc::ReadCurrent curr_msg;
+            command.cmd().UnpackTo(&curr_msg);
+
+            double amps = ptc.read_ltc2945_current_a(
+                static_cast<uint8_t>(curr_msg.mux_channel()),
+                static_cast<uint8_t>(curr_msg.addr()),
+                curr_msg.shunt_ohm()
+            );
+
+	    glog.log("PTC Server: ReadCurrent value = %f\n", amps);
+
+
+            ptc::DoubleValue rep;
+            rep.set_value(amps);
+            rep.SerializeToString(&reply_str);
+        }
+
         else {
-            glog.log("PTC Server: Received unknown command type\n");
-            ptc::Status status;
-            status.set_success(false);
+	glog.log("PTC Server: Received unknown command type: %s\n",command.cmd().type_url().c_str());
+	ptc::Status status;    
+	status.set_success(false);
             status.SerializeToString(&reply_str);
         }
 
