@@ -49,3 +49,38 @@ elif args.cmd == "ping":
 
     success = ptc.ping()
     print("PTC alive" if success else "PTC not responding")
+
+elif args.cmd == "temp":
+    if len(args.args) != 2:
+        print("Usage: temp <mux_channel> <addr>")
+        exit(1)
+
+    mux_channel = int(args.args[0], 0)
+    addr = int(args.args[1], 16)
+    val = ptc.read_temperature(mux_channel, addr)
+    print(f"{val:.3f} C")
+
+elif args.cmd == "voltage":
+    if len(args.args) != 2:
+        print("Usage: voltage <mux_channel> <addr>")
+        exit(1)
+
+    mux_channel = int(args.args[0], 0)
+    addr = int(args.args[1], 16)
+    val = ptc.read_voltage(mux_channel, addr)
+    print(f"{val:.3f} V")
+
+elif args.cmd == "current":
+    if len(args.args) != 3:
+        print("Usage: current <mux_channel> <addr> <shunt_ohm>")
+        exit(1)
+
+    mux_channel = int(args.args[0], 0)
+    addr = int(args.args[1], 16)
+    shunt_ohm = float(args.args[2])
+    val = ptc.read_current(mux_channel, addr, shunt_ohm)
+    print(f"{val:.3f} A")
+
+else:
+    print(f"Unknown command: {args.cmd}")
+    exit(1)

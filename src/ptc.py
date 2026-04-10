@@ -34,3 +34,28 @@ class PTC:
         rep = ptc_pb2.Status()
         self.send_command(req, rep)
         return rep.success
+
+    def read_temperature(self, mux_channel, addr):
+        req = ptc_pb2.ReadTemperature()
+        req.mux_channel = mux_channel
+        req.addr = addr
+        rep = ptc_pb2.DoubleValue()
+        self.send_command(req, rep)
+        return rep.value
+
+    def read_voltage(self, mux_channel, addr):
+        req = ptc_pb2.ReadVoltage()
+        req.mux_channel = mux_channel
+        req.addr = addr
+        rep = ptc_pb2.DoubleValue()
+        self.send_command(req, rep)
+        return rep.value
+
+    def read_current(self, mux_channel, addr, shunt_ohm):
+        req = ptc_pb2.ReadCurrent()
+        req.mux_channel = mux_channel
+        req.addr = addr
+        req.shunt_ohm = shunt_ohm
+        rep = ptc_pb2.DoubleValue()
+        self.send_command(req, rep)
+        return rep.value

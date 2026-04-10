@@ -32,7 +32,8 @@ public:
     // Power Control 
     void power_wib(int slot, bool on);
 
-    // Sensor reading and returning value as double 
+    // Sensor reading and returning value as double
+    int read_i2c_reg(uint8_t mux_channel, uint8_t addr, uint8_t reg);
     double read_temperature(uint8_t addr);
     double read_voltage(uint8_t channel);
     double read_current(uint8_t addr, double sense_resistor);

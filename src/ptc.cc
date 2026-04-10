@@ -26,14 +26,7 @@ static constexpr size_t PWR_EN_OFFSET = 0x10;
 // set the reg_ptr to MAP_FAILED as a sentinel value to indicate mapping failure for later
 PTC::PTC() : reg_ptr((volatile uint32_t*)MAP_FAILED) {
 
-    // 1. Initialize I2C (Bus 0 as per documentation)
-    if (i2c_init(&selected_i2c, "/dev/i2c-0") != 0) {
-        glog.log("PTC: I2C init failed\n");
-    } else {
-        glog.log("PTC: I2C initialized successfully\n");
-    }
-
-    // 2. Hardware Mapping
+    // 1. Hardware Mapping FIRST
     #ifndef SIMULATION
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
 
@@ -42,21 +35,30 @@ PTC::PTC() : reg_ptr((volatile uint32_t*)MAP_FAILED) {
     } 
     
     else {
-        // Map 512 bytes starting at PTC_REG_BASE (0x80020000)
         void* ptr = mmap(NULL, PTC_REG_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, PTC_REG_BASE);
         if (ptr == MAP_FAILED) {
             glog.log("PTC: mmap failed: %s\n", strerror(errno));
         } 
         
         else {
-            // Cast to volatile as defined in header
             reg_ptr = (volatile uint32_t*)ptr;
             glog.log("PTC: Hardware registers mapped at 0x%08X\n", PTC_REG_BASE);
+
+            // enabling the i2c access
+            this->poke(0x80020000, 0x00000201);
+            glog.log("PTC: I2C path enabled (reg 0x80020000 = 0x00000201)\n");
         }
 
         close(fd); 
     }
     #endif
+
+    // 2. Initialize I2C (FIXED BUS)
+    if (i2c_init(&selected_i2c, "/dev/i2c-1") != 0) {
+        glog.log("PTC: I2C init failed on /dev/i2c-1\n");
+    } else {
+        glog.log("PTC: I2C initialized successfully on /dev/i2c-1\n");
+    }
 }
 
 /* Destructor */
@@ -118,6 +120,13 @@ void PTC::power_wib(int slot, bool on) {
     return;
 }
 
+
+int PTC::read_i2c_reg(uint8_t mux_channel, uint8_t slave, uint8_t reg) {
+    select_bus(mux_channel);
+    return i2c_reg_read(&selected_i2c, slave, reg);
+}
+
+
 /* Read temperature from sensor - Kept empty per request */
 double PTC::read_temperature(uint8_t addr) {
     return 0.0;
@@ -146,15 +155,11 @@ void PTC::select_bus(uint8_t bus_idx) {
         return;
     }
 
-    // PCA9544A Control Register: 
-    // Bits [2:0] select the channel. 0x4 enables channel 0, 0x5 channel 1, etc.
-    // Usually, 0x04 | bus_idx is the command byte.
-    uint8_t control_byte = 0x04 | bus_idx; 
-    
-    // Mux Address is typically 0x70 on these boards
+    uint8_t control_byte = (1 << bus_idx);
+
     if (i2c_write(&this->selected_i2c, 0x70, &control_byte, 1) != 0) {
         glog.log("PTC: Failed to select I2C bus %d\n", bus_idx);
     } else {
-        glog.log("PTC: I2C bus %d selected\n", bus_idx);
+        glog.log("PTC: I2C bus %d selected (0x%02x)\n", bus_idx, control_byte);
     }
 }
