@@ -157,9 +157,100 @@ void PTC::select_bus(uint8_t bus_idx) {
 
     uint8_t control_byte = (1 << bus_idx);
 
-    if (i2c_write(&this->selected_i2c, 0x70, &control_byte, 1) != 0) {
-        glog.log("PTC: Failed to select I2C bus %d\n", bus_idx);
+    int ret = i2c_write(&this->selected_i2c, 0x70, &control_byte, 1);
+    if (ret < 0) {
+	    glog.log("PTC: Failed to select I2C mux channel %d (ret=%d)\n", bus_idx, ret);
     } else {
-        glog.log("PTC: I2C bus %d selected (0x%02x)\n", bus_idx, control_byte);
+	    glog.log("PTC: I2C mux channel %d selected with 0x%02x (ret=%d)\n", bus_idx, control_byte, ret);
     }
+}
+
+int PTC::read_i2c_reg16(uint8_t mux_channel, uint8_t addr, uint8_t reg) {
+    select_bus(mux_channel);
+
+    uint8_t wbuf[1] = {reg};
+    uint8_t rbuf[2] = {0, 0};
+
+    int ret = i2c_writeread(&this->selected_i2c, addr, wbuf, 1, rbuf, 2);
+    if (ret < 0) {
+        glog.log("PTC: I2C 16-bit read failed (mux=%d addr=0x%02x reg=0x%02x)\n",
+                 mux_channel, addr, reg);
+        return -1;
+    }
+
+    int val = (rbuf[1] << 8) | rbuf[0];   // try SMBus-style ordering first
+    glog.log("PTC: I2C 16-bit read OK (mux=%d addr=0x%02x reg=0x%02x) = 0x%04x\n",
+             mux_channel, addr, reg, val);
+    return val;
+}
+
+double PTC::read_tmp117_temp_c(uint8_t mux_channel, uint8_t addr) {
+    int raw = read_i2c_reg16(mux_channel, addr, 0x00);
+    if (raw < 0) {
+        glog.log("PTC: TMP117 read failed (mux=%d addr=0x%02x)\n",
+                 mux_channel, addr);
+        return NAN;
+    }
+
+    uint16_t word = static_cast<uint16_t>(raw & 0xffff);
+
+    // Match the old i2cget-based decoding convention:
+    // swap bytes first, then apply TMP117 scale.
+    uint16_t swapped = static_cast<uint16_t>((word >> 8) | (word << 8));
+
+    double temp_c = static_cast<double>(swapped) * 0.0078125;
+
+    glog.log("PTC: TMP117 temp read OK (mux=%d addr=0x%02x) = %.3f C\n",
+             mux_channel, addr, temp_c);
+
+    return temp_c;
+}
+
+double PTC::read_ltc2945_voltage_v(uint8_t mux_channel, uint8_t addr) {
+    int raw = read_i2c_reg16(mux_channel, addr, 0x1e);
+    if (raw < 0) {
+        glog.log("PTC: LTC2945 voltage read failed (mux=%d addr=0x%02x)\n",
+                 mux_channel, addr);
+        return NAN;
+    }
+
+    uint16_t word = static_cast<uint16_t>(raw & 0xffff);
+
+    // Match old script convention: swap bytes, then right shift 4
+    uint16_t swapped = static_cast<uint16_t>((word >> 8) | (word << 8));
+    uint16_t adc = swapped >> 4;
+
+    double volts = static_cast<double>(adc) * 0.025;
+
+    glog.log("PTC: LTC2945 voltage read OK (mux=%d addr=0x%02x) = %.3f V\n",
+             mux_channel, addr, volts);
+
+    return volts;
+}
+
+double PTC::read_ltc2945_current_a(uint8_t mux_channel, uint8_t addr, double shunt_ohm) {
+    if (shunt_ohm <= 0.0) {
+        glog.log("PTC: Invalid shunt resistor value %.6f\n", shunt_ohm);
+        return NAN;
+    }
+
+    int raw = read_i2c_reg16(mux_channel, addr, 0x14);
+    if (raw < 0) {
+        glog.log("PTC: LTC2945 current read failed (mux=%d addr=0x%02x)\n",
+                 mux_channel, addr);
+        return NAN;
+    }
+
+    uint16_t word = static_cast<uint16_t>(raw & 0xffff);
+
+    // Match old script convention: swap bytes, then right shift 4
+    uint16_t swapped = static_cast<uint16_t>((word >> 8) | (word << 8));
+    uint16_t adc = swapped >> 4;
+
+    double amps = static_cast<double>(adc) * 0.000025 / shunt_ohm;
+
+    glog.log("PTC: LTC2945 current read OK (mux=%d addr=0x%02x) = %.3f A\n",
+             mux_channel, addr, amps);
+
+    return amps;
 }
