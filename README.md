@@ -35,6 +35,7 @@ Software development repository for the <strong>PTC (Power and Timing Card)</str
   - [3. Enable the Service](#3-enable-the-service)
   - [4. Start the Service](#4-start-the-service)
   - [5. Verification after Reboot](#5-verification-after-reboot)
+- [I2C on-board Sensor Readout](#i2c-on-board-sensor-readout)
 - [Roadmap](#roadmap)
 
 ---
@@ -545,14 +546,123 @@ nc -vz <PTC_IP> 7820
 * Logging is handled via files in `/var/log/`, which can be inspected for debugging startup issues.
 
 ---
+## I2C on-board Sensor Readout 
+
+This section documents **working, validated commands** for reading on-board sensors through the Python client. These examples reflect the actual hardware mapping currently observed on the PTC.
+
+
+### Command Format
+
+```bash
+python ptc_client.py -s <PTC_IP> <quantity> <mux_channel> <i2c_address> [extra]
+```
+
+* `<quantity>`: `temp`, `voltage`, or `current`
+* `<mux_channel>`: I2C MUX channel (e.g. `3`)
+* `<i2c_address>`: device address in hex (e.g. `0x48`)
+* `[extra]`: optional parameter (used for current measurement: shunt resistance)
+
+
+### Temperature Readout (TMP117)
+
+Temperature sensors are accessible on **MUX channel 3** at the following addresses:
+
+| Address | Typical Reading |
+| ------- | --------------- |
+| 0x48    | ~45.8 °C        |
+| 0x49    | ~33.3 °C        |
+| 0x4A    | ~41.0 °C        |
+
+Example usage:
+
+```bash
+python ptc_client.py -s 192.168.0.19 temp 3 0x48
+→ 45.766 C
+
+python ptc_client.py -s 192.168.0.19 temp 3 0x49
+→ 33.289 C
+
+python ptc_client.py -s 192.168.0.19 temp 3 0x4a
+→ 41.047 C
+```
+
+All TMP117 devices use register `0x00` internally.
+
+
+### Voltage Readout (LTC2945)
+
+Voltage monitoring is performed via LTC2945 devices:
+
+| Address | Typical Value |
+| ------- | ------------- |
+| 0x6D    | ~12.2 V       |
+| 0x6E    | ~49.0 V       |
+
+Example usage:
+
+```bash
+python ptc_client.py -s 192.168.0.19 voltage 3 0x6d
+→ 12.225 V
+
+python ptc_client.py -s 192.168.0.19 voltage 3 0x6e
+→ 49.000 V
+```
+
+Voltage is read from register `0x1E`.
 
 
 
-### Context within PTC System
+### Current Readout (LTC2945)
 
-The PTC operates as a slow-control interface between hardware subsystems (power regulation, timing distribution, and I2C sensor readout) and external control systems via Ethernet. :contentReference[oaicite:0]{index=0}
+Current measurement requires specifying the **shunt resistor value**:
 
-Ensuring `ptc_server` runs at boot guarantees that register access, monitoring, and control pathways are available immediately after system initialization.
+```bash
+python ptc_client.py -s <PTC_IP> current <channel> <addr> <R_shunt>
+```
+
+* `R_shunt` is in **ohms**
+
+Example usage:
+
+```bash
+python ptc_client.py -s 192.168.0.19 current 3 0x6d 0.005
+→ 0.895 A
+
+python ptc_client.py -s 192.168.0.19 current 3 0x6d 0.02
+→ 0.224 A
+```
+
+Current is read from register `0x14`.
+
+**Important:**
+
+* The measured current scales inversely with `R_shunt`
+* Incorrect shunt value will produce incorrect current (no warning is issued)
+
+
+### Device Mapping Summary
+
+| I2C Address | Device  | Register | Quantity    |
+| ----------- | ------- | -------- | ----------- |
+| 0x48–0x4A   | TMP117  | 0x00     | Temperature |
+| 0x6D        | LTC2945 | 0x1E     | Voltage     |
+| 0x6D        | LTC2945 | 0x14     | Current     |
+| 0x6E        | LTC2945 | 0x1E     | Voltage     |
+| 0x6E        | LTC2945 | 0x14     | Current     |
+
+
+
+### Notes on MUX Channel
+
+All currently working sensors are located behind:
+
+```bash
+channel = 3
+```
+
+Using a different channel will result in no response from these devices.
+
+
 
 ---
 
@@ -566,7 +676,7 @@ This repository is being developed alongside a hardware test stand consisting of
 * a DUNE server on the same network
 
 The next steps are:
-* Auto-start ptc_server at boot
-* Expand I2C sensor support
+* Auto-start ptc_server at boot (✅Done!)
+* Expand I2C sensor support (✅Done!)
 * Slow controls integration
 
