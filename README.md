@@ -422,7 +422,7 @@ PTC alive
 
 ## Running ptc_server on Boot
 
-This section describes how to configure the PTC server to automatically start at boot using a `systemd` service. This replaces older SysV-style (`/etc/rc*.d/`) initialization methods and provides a more robust and maintainable solution.
+This section describes how to configure the PTC server to automatically start at boot using a `systemd` service. This replaces older SysV-style (`/etc/rc*.d/`) initialization methods used on the WIB.
 
 ### Overview
 
@@ -550,6 +550,13 @@ nc -vz <PTC_IP> 7820
 
 This section documents **working, validated commands** for reading on-board sensors through the Python client. These examples reflect the actual hardware mapping currently observed on the PTC.
 
+
+### Enablikng the I2C access
+I2C access has to be enabled by 
+```
+poke(0x80020000, 0x00000201);
+```
+This process is executed inside the PTC constructor. 
 
 ### Command Format
 
