@@ -29,7 +29,12 @@ Software development repository for the <strong>PTC (Power and Timing Card)</str
   - [5. Start the Server on the PTC](#5-start-the-server-on-the-ptc)
   - [6. Validation of PTC client](#6-validation-of-ptc-client)
 - [Example Successful Output](#example-successful-output)
-- [Running server on Boot](#running-server-on-boot)
+- [Running ptc_server on Boot](#running-ptc_server-on-boot)
+  - [1. Create the systemd Service File](#1-create-the-systemd-service-file)
+  - [2. Ensure the Init Script is Executable](#2-ensure-the-init-script-is-executable)
+  - [3. Enable the Service](#3-enable-the-service)
+  - [4. Start the Service](#4-start-the-service)
+  - [5. Verification after Reboot](#5-verification-after-reboot)
 - [Roadmap](#roadmap)
 
 ---
@@ -414,29 +419,30 @@ PTC alive
 
 ---
 
-## Running Server on Boot 
+## Running ptc_server on Boot
 
-This section describes how to configure the PTC such that `ptc_server` starts automatically on system boot using **systemd**, which is the default init system on the PTC platform.
+This section describes how to configure the PTC server to automatically start at boot using a `systemd` service. This replaces older SysV-style (`/etc/rc*.d/`) initialization methods and provides a more robust and maintainable solution.
 
-Unlike WIB firmware (which uses SysV init and `/etc/rc*.d`), the PTC uses **systemd services** for process management.
+### Overview
 
+The startup chain is structured as:
 
-### 1. Ensure `ptc_init.sh` is executable
-
-```bash
-chmod +x ~/PTC_development/ptc_init.sh
 ```
-Important: If this permission is missing, systemd will fail with `status=203/EXEC`.
-
-
-
-### 2. Create systemd service file
-
-```bash
-sudo vim /etc/systemd/system/ptc_server.service
+boot → systemd → ptc_server.service → ptc_init.sh → ptc_server
 ```
 
-Add the following:
+The `ptc_init.sh` script is responsible for performing initialization checks and launching the server.
+
+
+### 1. Create the systemd Service File
+
+Create the following file:
+
+```
+/etc/systemd/system/ptc_server.service
+```
+
+With the following contents:
 
 ```ini
 [Unit]
@@ -444,87 +450,109 @@ Description=PTC Server
 After=network.target
 
 [Service]
-Type=forking
-ExecStart=/home/root/PTC_development/ptc_init.sh
+ExecStart=/bin/sh /home/root/PTC_development/ptc_init.sh
 Restart=always
-RestartSec=2
+User=root
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-### 3. Enable the service
 
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable ptc_server
-```
-
-This ensures the service starts automatically on boot.
-
-
-
-### 4. Start and verify manually
-
-```bash
-sudo systemctl start ptc_server
-sudo systemctl status ptc_server
-```
-
-Expected output:
+### 2. Ensure the Init Script is Executable
 
 ```
-Active: active (running)
-Main PID: xxxx (ptc_server)
+chmod +x /home/root/PTC_development/ptc_init.sh
 ```
 
 
-### 5. Restart test
+### 3. Enable the Service
 
-```bash
-sudo systemctl restart ptc_server
+Reload systemd and enable the service:
+
+```
+systemctl daemon-reload
+systemctl enable ptc_server
 ```
 
-Verify only one `/bin/ptrc_server` is running:
 
-```bash
+### 4. Start the Service 
+
+```
+systemctl start ptc_server
+```
+
+Check status:
+
+```
+systemctl status ptc_server
+```
+
+A successful run should show the service as `active (running)`.
+
+
+This shoulod have executed the `ptc_init.sh` script, which performs the following steps:
+
+1. Logs startup activity:
+
+   ```
+   /var/log/ptc_startup.log
+   ```
+
+2. Performs a hardware sanity check:
+
+   ```
+   peek 0x800201FC
+   ```
+
+   Expected value: `0xDEADBEEF`
+
+3. Starts the server and logs output:
+
+   ```
+   /bin/ptc_server >> /var/log/ptc_server.log 2>&1
+   ```
+
+
+### 5. Verification After Reboot
+
+After rebooting the PTC, verify that the server is running:
+
+Check that the port is open:
+
+```
+netstat -tuln | grep 7820
+```
+
+Check that the process is running:
+
+```
 ps aux | grep ptc_server
 ```
 
+Check connectivity from a remote machine:
 
-
-### 6. Reboot validation
-
-```bash
-sudo reboot
 ```
-
-After reconnecting:
-
-```bash
-ps aux | grep ptc_server
-```
-
-If configured correctly, `/bin/ptrc_server` should already be running.
-
-
-### 7. Logs and debugging
-
-
-Check startup logs:
-
-```bash
-cat /var/log/ptc_startup.log
+nc -vz <PTC_IP> 7820
 ```
 
 
-### Comparison to WIB
 
-| Feature            | WIB            | PTC                |
-| ------------------ | -------------- | ------------------ |
-| Init system        | SysV (`rc*.d`) | systemd            |
-| Startup script     | `wib_init.sh`  | `ptc_init.sh`      |
+### Notes
 
+* The `Restart=always` option ensures the server is automatically restarted if it crashes.
+* This configuration assumes that `ptc_server` and `peek` are installed in `/bin/`.
+* Logging is handled via files in `/var/log/`, which can be inspected for debugging startup issues.
+
+---
+
+
+
+### Context within PTC System
+
+The PTC operates as a slow-control interface between hardware subsystems (power regulation, timing distribution, and I2C sensor readout) and external control systems via Ethernet. :contentReference[oaicite:0]{index=0}
+
+Ensuring `ptc_server` runs at boot guarantees that register access, monitoring, and control pathways are available immediately after system initialization.
 
 ---
 
@@ -538,7 +566,7 @@ This repository is being developed alongside a hardware test stand consisting of
 * a DUNE server on the same network
 
 The next steps are:
-* Auto-start ptc_server at boot (DONE✅)
+* Auto-start ptc_server at boot
 * Expand I2C sensor support
 * Slow controls integration
 
