@@ -79,3 +79,8 @@ message ReadWIBPowerReply{
 	float voltage = 1;
 	float current = 2;
 }
+
+message PowerAllWIBs {
+    bool on = 1;
+}
+

@@ -269,3 +269,11 @@ double PTC::read_ltc2945_current_a(uint8_t mux_channel, uint8_t addr, double shu
 
     return amps;
 }
+
+
+void PTC::power_all_wibs(bool on)
+{
+    for (int slot = 0; slot < 6; slot++) {
+        power_wib(slot, on);
+    }
+}

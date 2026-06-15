@@ -4,6 +4,7 @@
 
 from ptc import PTC
 import argparse
+import math
 
 # parsing the argument from command line
 parser = argparse.ArgumentParser()
@@ -87,6 +88,11 @@ elif args.cmd == "wib":
         exit(1)
     slot = int(args.args[0])
     state = args.args[1].lower()
+    if state not in ["on", "off"]:
+        print(f"Invalid state '{state}'")
+        print("Usage: wib <slot> <on|off>")
+        exit(1)
+
     success = ptc.power_wib(
         slot,
         state == "on"
@@ -105,6 +111,49 @@ elif args.cmd == "read_wib_power":
 
     print(f"{voltage:.3f} V")
     print(f"{current:.3f} A")
+
+
+elif args.cmd == "wib_all":
+
+    if len(args.args) != 1:
+        print("Usage: wib_all <on|off>")
+        exit(1)
+
+    state = args.args[0].lower()
+
+    if state not in ["on", "off"]:
+        print(f"Invalid state: {state}")
+        print("Usage: wib_all <on|off>")
+        exit(1)
+
+    success = True
+
+    for slot in range(6):
+        success &= ptc.power_wib(
+            slot,
+            state == "on"
+        )
+
+    print("OK" if success else "FAILED")
+
+
+elif args.cmd == "read_all_wib":
+
+    print("WIB   Voltage(V)   Current(A)")
+    print("--------------------------------")
+
+    for wib in range(6):
+
+        voltage, current = ptc.read_wib_power(wib)
+
+        if math.isnan(voltage) or math.isnan(current):
+            print(f"{wib:3d}      OFF")
+        else:
+            print(
+                f"{wib:3d}   "
+                f"{voltage:8.3f}   "
+                f"{current:8.3f}"
+            )
 
 else:
     print(f"Unknown command: {args.cmd}")

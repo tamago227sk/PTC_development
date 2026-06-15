@@ -204,6 +204,18 @@ int main(int argc, char **argv) {
 
 	}	
 
+	else if (command.cmd().Is<ptc::PowerAllWIBs>()) {
+
+    		ptc::PowerAllWIBs req;
+    		command.cmd().UnpackTo(&req);
+
+    		ptc.power_all_wibs(req.on());
+
+    		ptc::Status rep;
+    		rep.set_success(true);
+    		rep.SerializeToString(&reply_str);
+	}
+
         else {
 	glog.log("PTC Server: Received unknown command type: %s\n",command.cmd().type_url().c_str());
 	ptc::Status status;    
