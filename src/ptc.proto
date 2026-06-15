@@ -66,4 +66,16 @@ message DoubleValue {
   double value = 1;
 }
 
+message PowerWIB {
+    uint32 slot = 1;
+    bool on = 2;
+}
 
+message ReadWIBPowerRequest {
+	uint32 wib = 1;
+}
+
+message ReadWIBPowerReply{
+	float voltage = 1;
+	float current = 2;
+}

@@ -81,6 +81,31 @@ elif args.cmd == "current":
     val = ptc.read_current(mux_channel, addr, shunt_ohm)
     print(f"{val:.3f} A")
 
+elif args.cmd == "wib":
+    if len(args.args) != 2:
+        print("Usage: wib <slot> <on|off>")
+        exit(1)
+    slot = int(args.args[0])
+    state = args.args[1].lower()
+    success = ptc.power_wib(
+        slot,
+        state == "on"
+    )
+    print("OK" if success else "FAILED")
+
+elif args.cmd == "read_wib_power":
+
+    if len(args.args) != 1:
+        print("Usage: read_wib_power <wib>")
+        exit(1)
+
+    wib = int(args.args[0])
+
+    voltage, current = ptc.read_wib_power(wib)
+
+    print(f"{voltage:.3f} V")
+    print(f"{current:.3f} A")
+
 else:
     print(f"Unknown command: {args.cmd}")
     exit(1)

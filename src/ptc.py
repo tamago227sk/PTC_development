@@ -59,3 +59,27 @@ class PTC:
         rep = ptc_pb2.DoubleValue()
         self.send_command(req, rep)
         return rep.value
+
+    def power_wib(self, slot, on):
+
+        req = ptc_pb2.PowerWIB()
+        req.slot = slot
+        req.on = on
+        rep = ptc_pb2.Status()
+        self.send_command(req, rep)
+        return rep.success
+
+    def read_wib_power(self, wib):
+        req = ptc_pb2.ReadWIBPowerRequest()
+        req.wib = wib
+
+        rep = ptc_pb2.ReadWIBPowerReply()
+
+        self.send_command(req, rep)
+
+
+        return (
+            rep.voltage,
+            rep.current
+        )
+

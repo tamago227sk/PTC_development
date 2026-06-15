@@ -113,11 +113,26 @@ void PTC::poke(size_t addr, uint32_t val) {
 }
 
 /* Power on WIB */
-void PTC::power_wib(int slot, bool on) {
-    select_bus(slot); 
-    // Then perform the I2C write to the power controller (LTC2945)
-    glog.log("PTC: power_wib called for slot %d (on=%s) - [Placeholder: No action taken]\n", slot, on ? "true" : "false");
-    return;
+void PTC::power_wib(int slot, bool on)
+{
+    if (slot < 0 || slot > 5) {
+        glog.log("PTC: Invalid WIB slot %d\n", slot);
+        return;
+    }
+
+    size_t reg = PTC_REG_BASE + 0x10 + slot * 4;
+
+    poke(reg, on ? 1 : 0);
+
+    uint32_t rb = peek(reg);
+
+    glog.log(
+        "PTC: WIB%d power %s (reg=0x%08lx rb=0x%08x)\n",
+        slot,
+        on ? "ON" : "OFF",
+        reg,
+        rb
+    );
 }
 
 

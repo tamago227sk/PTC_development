@@ -161,6 +161,49 @@ int main(int argc, char **argv) {
             rep.SerializeToString(&reply_str);
         }
 
+	else if (command.cmd().Is<ptc::PowerWIB>()) {
+    		ptc::PowerWIB req;
+    		command.cmd().UnpackTo(&req);
+
+    		ptc.power_wib(
+        	static_cast<int>(req.slot()),
+        		req.on()
+    		);
+
+    		ptc::Status rep;
+    		rep.set_success(true);
+    		rep.SerializeToString(&reply_str);
+	}
+
+	else if (command.cmd().Is<ptc::ReadWIBPowerRequest>()) {
+
+ 		ptc::ReadWIBPowerRequest power_msg;
+    		command.cmd().UnpackTo(&power_msg);
+
+    		uint32_t wib = power_msg.wib();
+
+    		uint8_t addr = 0x67 + wib;
+
+   	 	double volts = ptc.read_ltc2945_voltage_v(
+        	3,
+        	addr
+    		);
+
+    		double amps = ptc.read_ltc2945_current_a(
+        	3,
+        	addr,
+        	0.005
+    		);
+
+    		ptc::ReadWIBPowerReply rep;
+    		rep.set_voltage(volts);
+    		rep.set_current(amps);
+
+    		rep.SerializeToString(&reply_str);
+		printf("Reading mux=%u addr=0x%02x\n", wib, addr);
+
+	}	
+
         else {
 	glog.log("PTC Server: Received unknown command type: %s\n",command.cmd().type_url().c_str());
 	ptc::Status status;    
